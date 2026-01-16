@@ -498,8 +498,8 @@ int main(int argc, char* argv[]) {
                                                         SDL_Color highlightColor = {255, 255, 0, 255};
                                                         
                                                         // 内容区域从标题栏下方开始（与Menu对齐）
-                                                        int xPos = menuX;
-                                                        int yPos = menuY + 20 + 10;  // menuY + 20是标题栏结束，+10是间距
+                                                        int xPos = menuX + 40;
+                                                        int yPos = menuY + 20 + 30 + 10;  // menuY + 20是标题栏结束，+10是间距
                                                         
                                                         // 绘制年份
                                                         SDL_Color yearColor = (editingField == 0) ? highlightColor : normalColor;
