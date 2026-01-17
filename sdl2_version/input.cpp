@@ -134,8 +134,8 @@ void InputManager::update() {
     Uint32 mouseButtons = SDL_GetMouseState(&mouseX, &mouseY);
     
     // 转换为逻辑坐标（考虑缩放）
-    mouseX = mouseX / 3; // SCALE = 3
-    mouseY = mouseY / 3;
+    mouseX = mouseX / 2.5; // SCALE = 3
+    mouseY = mouseY / 2.5;
     
     bool wasTouching = currentState.touchDown;
     currentState.touchDown = (mouseButtons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;

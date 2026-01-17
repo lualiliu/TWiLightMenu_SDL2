@@ -6,6 +6,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <limits.h>
+#include <errno.h>
 #include <sstream>
 #include <iomanip>
 #include <ctime>
@@ -75,6 +76,11 @@ bool initSDL() {
         std::cerr << "窗口创建失败: " << SDL_GetError() << std::endl;
         return false;
     }
+
+    // 设置窗口的 app_id（用于 Sway 识别）
+    SDL_SetWindowTitle(window, "TWiLight Menu SDL2");
+    // 尝试设置窗口类名（Wayland/Sway 使用这个作为 app_id）
+   // SDL_SetHint(SDL_HINT_APP_NAME, "twilightmenu_sdl2");
 
     // 创建渲染器
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
@@ -196,6 +202,11 @@ int main(int argc, char* argv[]) {
     // 初始化音频系统
     if (!soundInit()) {
         std::cerr << "音频系统初始化失败（继续运行）" << std::endl;
+    } else {
+        // 播放背景音乐
+        if (!playBackgroundMusic("./background.mp3")) {
+            std::cerr << "背景音乐播放失败（继续运行）" << std::endl;
+        }
     }
 
     // 初始化输入管理器
@@ -231,6 +242,7 @@ int main(int argc, char* argv[]) {
     Uint32 lastTime = SDL_GetTicks();
     const Uint32 targetFPS = 60;
     const Uint32 frameTime = 1000 / targetFPS;
+    bool swayConfigured = false;  // 标记是否已配置 Sway 窗口
 
     while (running) {
         Uint32 currentTime = SDL_GetTicks();
@@ -590,6 +602,9 @@ int main(int argc, char* argv[]) {
                         mainMenu->setActive(false);
                         break;
                     case 4: // Exit
+                        // 执行关机命令
+                        std::cout << "执行关机..." << std::endl;
+                        system("poweroff");
                         running = false;
                         break;
                 }
@@ -638,18 +653,59 @@ int main(int argc, char* argv[]) {
                                 std::string absolutePath = absPath;
                                 free(absPath);
                                 
-                                // 调用start_drastic.sh脚本
+                                // 关闭背景音乐
+                                stopBackgroundMusic();
+                                
+                                // 在启动NDS ROM前重启sway
+                                std::cout << "重启 Sway..." << std::endl;
+                                system("systemctl restart sway");
+                                
+                                // 等待一下让sway重启完成
+                                SDL_Delay(1000);
+                                
+                                // 调用start_drastic.sh脚本并等待其退出
                                 std::string command = "start_drastic.sh \"" + absolutePath + "\"";
                                 std::cout << "启动NDS文件: " << absolutePath << std::endl;
                                 std::cout << "执行命令: " << command << std::endl;
                                 
-                                // 在后台执行脚本
-                                int result = system((command + " > /tmp/drastic.log 2>&1 &").c_str());
-                                if (result == 0) {
-                                    std::cout << "NDS文件启动成功，日志输出到 /tmp/drastic.log" << std::endl;
-                                } else {
-                                    std::cerr << "启动NDS文件失败，返回码: " << result << std::endl;
+                                // 执行脚本并等待退出
+                                int result = system(command.c_str());
+                                std::cout << "start_drastic.sh 已退出，返回码: " << result << std::endl;
+                                
+                                // start_drastic.sh退出后，重新启动twilightmenu_sdl2
+                                std::cout << "重新启动 TWiLight Menu SDL2..." << std::endl;
+                                
+                                // 清理资源
+                                if (mainMenu) {
+                                    delete mainMenu;
+                                    mainMenu = nullptr;
                                 }
+                                InputManager::cleanup();
+                                graphicsCleanup();
+                                fontCleanup();
+                                fileBrowseCleanup();
+                                languageCleanup();
+                                soundCleanup();
+                                cleanupSDL();
+                                
+                                // 重新启动程序（使用argv[0]获取程序路径）
+                                char* programPath = argv[0];
+                                if (programPath[0] != '/') {
+                                    // 如果是相对路径，尝试转换为绝对路径
+                                    char cwd[PATH_MAX];
+                                    if (getcwd(cwd, sizeof(cwd)) != nullptr) {
+                                        std::string fullPath = std::string(cwd) + "/" + programPath;
+                                        execl(fullPath.c_str(), programPath, (char*)nullptr);
+                                    } else {
+                                        execl(programPath, programPath, (char*)nullptr);
+                                    }
+                                } else {
+                                    execl(programPath, programPath, (char*)nullptr);
+                                }
+                                
+                                // 如果execl失败，输出错误并退出
+                                std::cerr << "重新启动失败: " << strerror(errno) << std::endl;
+                                return 1;
                             } else {
                                 std::cerr << "无法获取绝对路径: " << ndsPath << std::endl;
                             }
@@ -683,6 +739,26 @@ int main(int argc, char* argv[]) {
         }
         
         SDL_RenderPresent(renderer);
+        
+        // 第一次渲染完成后，配置 Sway 窗口
+        if (!swayConfigured) {
+            // 等待一下让窗口完全显示并被 Sway 识别
+            SDL_Delay(100);
+            std::cout << "配置 Sway 窗口..." << std::endl;
+            // 执行 swaymsg 命令，忽略错误输出（避免 "No matching node" 错误显示）
+            system("swaymsg [app_id=\"twilightmenu_sdl2\"] output DSI-1 mode 640x480 position 0 192 2>/dev/null");
+            SDL_Delay(10);
+            system("swaymsg [app_id=\"twilightmenu_sdl2\"] output DSI-2 mode 640x480 position 0 0 2>/dev/null");
+            SDL_Delay(10);
+            system("swaymsg [app_id=\"twilightmenu_sdl2\"] floating enable, move scratchpad, scratchpad show, resize set 0 0, move absolute position 0 0, border none, output - scale 2.5 2>/dev/null");
+            SDL_Delay(10);
+            system("swaymsg [app_id=\"twilightmenu_sdl2\"] floating enable, move scratchpad, scratchpad show, resize set 0 0, move absolute position 0 0, border none, output - scale 2.5 2>/dev/null");
+            SDL_Delay(10);
+            system("swaymsg [app_id=\"twilightmenu_sdl2\"] floating enable, move scratchpad, scratchpad show, resize set 0 0, move absolute position 0 0, border none, output - scale 2.5 2>/dev/null");
+            SDL_Delay(10);
+            system("swaymsg [app_id=\"twilightmenu_sdl2\"] floating enable, move scratchpad, scratchpad show, resize set 0 0, move absolute position 0 0, border none, output - scale 2.5 2>/dev/null");
+            swayConfigured = true;
+        }
 
         // 帧率控制
         Uint32 frameTimeElapsed = SDL_GetTicks() - currentTime;

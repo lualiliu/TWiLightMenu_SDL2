@@ -319,7 +319,7 @@ void FileBrowser::render() {
     
     // 绘制提示
     SDL_Color hintColor = {150, 150, 150, 255};
-    TextRenderer::drawText(10, 360, "A: 打开/选择  B: 返回  ESC: 退出", hintColor, 9);
+    TextRenderer::drawText(10, 360, "A: Open/Select  B: Back  ESC: Exit", hintColor, 9);
 }
 
 bool FileBrowser::isPNGFile(const std::string& filename) {

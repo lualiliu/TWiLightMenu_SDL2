@@ -247,7 +247,14 @@ void renderFrame() {
     SDL_RenderDrawLine(g_renderer, 0, 192, 256, 192);
 
     // 绘制DSi风格的UI元素（现在在上屏）
-    DSiUI::drawBatteryIcon(4, false);  // 电池图标（满电）
+    // 从系统读取电池信息
+    int batteryLevel = DSiUI::getBatteryLevel();
+    bool isCharging = DSiUI::isBatteryCharging();
+    // 将0-100的电量转换为0-4的等级
+    // 0-20->0, 21-40->1, 41-60->2, 61-80->3, 81-100->4
+    int batteryLevelIndex = batteryLevel / 20;
+    if (batteryLevelIndex > 4) batteryLevelIndex = 4;
+    DSiUI::drawBatteryIcon(batteryLevelIndex, isCharging);
     DSiUI::drawVolumeIcon(3);          // 音量图标
     DSiUI::drawDSiDateTime();          // 日期时间
     // L/R按钮将在后面根据实际按键状态绘制

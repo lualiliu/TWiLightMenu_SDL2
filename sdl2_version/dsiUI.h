@@ -26,6 +26,10 @@ public:
     static void drawVolumeIcon(int level);
     static void drawShoulderButtons(bool leftActive, bool rightActive);
     
+    // 读取电池信息
+    static int getBatteryLevel();  // 返回0-100的电量百分比
+    static bool isBatteryCharging();  // 返回是否在充电
+    
     // 绘制游戏图标网格（支持文件列表）
     static void drawGameGrid(int selectedIndex, int scrollOffset, const std::vector<struct FileEntry>* files = nullptr);
     
@@ -44,6 +48,8 @@ private:
     static SDL_Texture* bottomBgTexture;
     static SDL_Texture* bottomBubbleTexture;
     static SDL_Texture* batteryTextures[5];
+    static SDL_Texture* batteryChargeTexture;
+    static SDL_Texture* batteryChargeBlinkTexture;
     static SDL_Texture* volumeTextures[5];
     static SDL_Texture* folderTexture;
     static SDL_Texture* ndsFileTexture;

@@ -13,12 +13,16 @@
 #include <algorithm>
 #include <cstring>
 #include <cmath>
+#include <fstream>
+#include <SDL2/SDL.h>
 
 SDL_Renderer* DSiUI::renderer = nullptr;
 SDL_Texture* DSiUI::topBgTexture = nullptr;
 SDL_Texture* DSiUI::bottomBgTexture = nullptr;
 SDL_Texture* DSiUI::bottomBubbleTexture = nullptr;
 SDL_Texture* DSiUI::batteryTextures[5] = {nullptr};
+SDL_Texture* DSiUI::batteryChargeTexture = nullptr;
+SDL_Texture* DSiUI::batteryChargeBlinkTexture = nullptr;
 SDL_Texture* DSiUI::volumeTextures[5] = {nullptr};
 SDL_Texture* DSiUI::folderTexture = nullptr;
 SDL_Texture* DSiUI::ndsFileTexture = nullptr;
@@ -61,6 +65,10 @@ void DSiUI::loadTextures() {
         batteryTextures[i] = ResourceManager::loadImageFromTheme(oss.str());
     }
     
+    // 加载充电图标
+    batteryChargeTexture = ResourceManager::loadImageFromTheme("battery/batterycharge");
+    batteryChargeBlinkTexture = ResourceManager::loadImageFromTheme("battery/batterychargeblink");
+    
     // 加载音量图标
     for (int i = 0; i < 5; i++) {
         std::ostringstream oss;
@@ -96,6 +104,8 @@ void DSiUI::freeTextures() {
         batteryTextures[i] = nullptr;
         volumeTextures[i] = nullptr;
     }
+    batteryChargeTexture = nullptr;
+    batteryChargeBlinkTexture = nullptr;
     folderTexture = nullptr;
     ndsFileTexture = nullptr;
     boxEmptyTexture = nullptr;
@@ -172,25 +182,80 @@ void DSiUI::drawBatteryIcon(int level, bool charging) {
     if (level > 4) level = 4;
     
     // 上屏位置（UI元素在上屏）
-    SDL_Texture* batteryTex = batteryTextures[level];
-    if (batteryTex) {
-        SDL_Rect destRect = {230, 8, 20, 12};
-        SDL_RenderCopy(renderer, batteryTex, nullptr, &destRect);
-    } else {
-        // 备用：简单绘制电池图标
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-        SDL_Rect batteryRect = {230, 8, 18, 10};
-        SDL_RenderDrawRect(renderer, &batteryRect);
-        SDL_Rect batteryTip = {248, 10, 2, 6};
-        SDL_RenderFillRect(renderer, &batteryTip);
+    SDL_Rect destRect = {230, 8, 20, 12};
+    
+    // 如果正在充电，显示充电图标
+    if (charging) {
+        // 使用闪烁效果：根据时间切换充电图标
+        Uint32 ticks = SDL_GetTicks();
+        bool blink = (ticks / 500) % 2 == 0;  // 每500ms切换一次
         
-        // 绘制电量
-        if (level > 0) {
-            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
-            SDL_Rect chargeRect = {232, 10, level * 3, 6};
-            SDL_RenderFillRect(renderer, &chargeRect);
+        SDL_Texture* chargeTex = blink ? batteryChargeBlinkTexture : batteryChargeTexture;
+        if (chargeTex) {
+            SDL_RenderCopy(renderer, chargeTex, nullptr, &destRect);
+        } else if (batteryChargeTexture) {
+            // 如果闪烁纹理不存在，使用普通充电纹理
+            SDL_RenderCopy(renderer, batteryChargeTexture, nullptr, &destRect);
+        } else {
+            // 备用：显示当前电量并添加充电指示
+            SDL_Texture* batteryTex = batteryTextures[level];
+            if (batteryTex) {
+                SDL_RenderCopy(renderer, batteryTex, nullptr, &destRect);
+            }
+            // 在电池图标上绘制充电指示（闪电符号或加号）
+            SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+            SDL_RenderDrawLine(renderer, 235, 10, 235, 14);
+            SDL_RenderDrawLine(renderer, 233, 12, 237, 12);
+        }
+    } else {
+        // 未充电，显示正常电池图标
+        SDL_Texture* batteryTex = batteryTextures[level];
+        if (batteryTex) {
+            SDL_RenderCopy(renderer, batteryTex, nullptr, &destRect);
+        } else {
+            // 备用：简单绘制电池图标
+            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+            SDL_Rect batteryRect = {230, 8, 18, 10};
+            SDL_RenderDrawRect(renderer, &batteryRect);
+            SDL_Rect batteryTip = {248, 10, 2, 6};
+            SDL_RenderFillRect(renderer, &batteryTip);
+            
+            // 绘制电量
+            if (level > 0) {
+                SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+                SDL_Rect chargeRect = {232, 10, level * 3, 6};
+                SDL_RenderFillRect(renderer, &chargeRect);
+            }
         }
     }
+}
+
+int DSiUI::getBatteryLevel() {
+    std::ifstream capacityFile("/sys/class/power_supply/battery/capacity");
+    if (capacityFile.is_open()) {
+        int capacity = 0;
+        capacityFile >> capacity;
+        capacityFile.close();
+        // 确保返回值在0-100之间
+        if (capacity < 0) capacity = 0;
+        if (capacity > 100) capacity = 100;
+        return capacity;
+    }
+    // 如果无法读取，返回默认值50
+    return 50;
+}
+
+bool DSiUI::isBatteryCharging() {
+    std::ifstream chargeTypeFile("/sys/class/power_supply/battery/charge_type");
+    if (chargeTypeFile.is_open()) {
+        std::string chargeType;
+        chargeTypeFile >> chargeType;
+        chargeTypeFile.close();
+        // 如果charge_type为"Standard"，表示正在充电
+        return (chargeType == "Standard");
+    }
+    // 如果无法读取，默认返回false（未充电）
+    return false;
 }
 
 void DSiUI::drawVolumeIcon(int level) {
