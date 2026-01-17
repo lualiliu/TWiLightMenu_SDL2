@@ -747,15 +747,15 @@ int main(int argc, char* argv[]) {
             std::cout << "配置 Sway 窗口..." << std::endl;
             // 执行 swaymsg 命令，忽略错误输出（避免 "No matching node" 错误显示）
             system("swaymsg [app_id=\"twilightmenu_sdl2\"] output DSI-1 mode 640x480 position 0 192 2>/dev/null");
-            SDL_Delay(10);
+            SDL_Delay(50);
             system("swaymsg [app_id=\"twilightmenu_sdl2\"] output DSI-2 mode 640x480 position 0 0 2>/dev/null");
-            SDL_Delay(10);
+            SDL_Delay(50);
             system("swaymsg [app_id=\"twilightmenu_sdl2\"] floating enable, move scratchpad, scratchpad show, resize set 0 0, move absolute position 0 0, border none, output - scale 2.5 2>/dev/null");
-            SDL_Delay(10);
+            SDL_Delay(50);
             system("swaymsg [app_id=\"twilightmenu_sdl2\"] floating enable, move scratchpad, scratchpad show, resize set 0 0, move absolute position 0 0, border none, output - scale 2.5 2>/dev/null");
-            SDL_Delay(10);
+            SDL_Delay(50);
             system("swaymsg [app_id=\"twilightmenu_sdl2\"] floating enable, move scratchpad, scratchpad show, resize set 0 0, move absolute position 0 0, border none, output - scale 2.5 2>/dev/null");
-            SDL_Delay(10);
+            SDL_Delay(50);
             system("swaymsg [app_id=\"twilightmenu_sdl2\"] floating enable, move scratchpad, scratchpad show, resize set 0 0, move absolute position 0 0, border none, output - scale 2.5 2>/dev/null");
             swayConfigured = true;
         }
