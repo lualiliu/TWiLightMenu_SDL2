@@ -26,12 +26,14 @@ void TextRenderer::loadFonts() {
     
     // 尝试加载支持中文的系统字体
     const char* fontPaths[] = {
-        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",  // Noto CJK字体（支持中文）
-        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",        // 文泉驿微米黑
-        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",          // 文泉驿正黑
-        "/usr/share/fonts/truetype/arphic/uming.ttc",             // AR PL UMing
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",        // DejaVu（不支持中文但作为备用）
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/liberation/LiberationSerif-Regular.ttf",
+        "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/noto/NotoSansCJK-Regular.ttc",  // Noto CJK字体（支持中文）
+        "/usr/share/fonts/wqy/wqy-microhei.ttc",        // 文泉驿微米黑
+        "/usr/share/fonts/wqy/wqy-zenhei.ttc",          // 文泉驿正黑
+        "/usr/share/fonts/arphic/uming.ttc",             // AR PL UMing
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",        // DejaVu（不支持中文但作为备用）
+
         "/usr/share/fonts/TTF/DejaVuSans.ttf",
         "/System/Library/Fonts/PingFang.ttc",                    // macOS中文字体
         "/System/Library/Fonts/STHeiti Light.ttc",               // macOS中文字体
